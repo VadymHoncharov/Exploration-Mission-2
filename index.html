@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Місія Артеміда-2: Повернення до Місяця</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #050510;
+            color: #ffffff;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none; /* Let clicks pass through to content */
+        }
+
+        .content-overlay {
+            position: relative;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .step-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .step-card:hover, .step-card.active {
+            transform: translateY(-5px);
+            border-color: #4facfe;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .nav-button {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050510;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Orbit path styling for UI */
+        .orbit-line {
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, #4facfe, transparent);
+            position: absolute;
+            left: 24px;
+            top: 40px;
+            bottom: -20px;
+            z-index: -1;
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050510;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: #4facfe;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loading-screen" id="loading">
+        <div class="spinner mb-4"></div>
+        <h2 class="text-xl tracking-widest text-blue-400">ІНІЦІАЛІЗАЦІЯ СИСТЕМ</h2>
+        <p class="text-gray-500 text-sm mt-2">Завантаження даних місії Артеміда-2...</p>
+    </div>
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="content-overlay h-screen flex flex-col md:flex-row">
+        
+        <!-- Left Sidebar / Main Info -->
+        <div class="w-full md:w-1/3 lg:w-1/4 h-full glass-panel border-r border-gray-800 flex flex-col p-6 overflow-y-auto">
+            <header class="mb-8 pt-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2 py-1 bg-blue-600/30 text-blue-400 text-xs rounded-full border border-blue-500/30">NASA</span>
+                    <span class="px-2 py-1 bg-red-600/30 text-red-400 text-xs rounded-full border border-red-500/30">CSA</span>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight mb-1">Артеміда<span class="text-blue-500">-2</span></h1>
+                <p class="text-gray-400 text-sm">Перша пілотована місія до Місяця з 1972 року</p>
+            </header>
+
+            <div class="mb-6">
+                <div class="bg-gray-800/50 rounded-lg p-4 mb-4 border border-gray-700">
+                    <h3 class="text-xs text-gray-500 uppercase tracking-wider mb-1">Статус місії</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                        <span class="font-semibold">Підготовка до запуску</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="bg-gray-800/30 rounded p-3 border border-gray-700/50">
+                        <div class="text-xs text-gray-500 mb-1">Екіпаж</div>
+                        <div class="font-bold">4 астронавти</div>
+                    </div>
+                    <div class="bg-gray-800/30 rounded p-3 border border-gray-700/50">
+                        <div class="text-xs text-gray-500 mb-1">Тривалість</div>
+                        <div class="font-bold">~10 днів</div>
+                    </div>
+                    <div class="bg-gray-800/30 rounded p-3 border border-gray-700/50">
+                        <div class="text-xs text-gray-500 mb-1">Ракета</div>
+                        <div class="font-bold">SLS Block 1</div>
+                    </div>
+                    <div class="bg-gray-800/30 rounded p-3 border border-gray-700/50">
+                        <div class="text-xs text-gray-500 mb-1">Корабель</div>
+                        <div class="font-bold">Orion</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <h3 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Екіпаж</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-blue-500/20">RW</div>
+                        <div>
+                            <div class="text-sm font-semibold">Рід Вайзмен</div>
+                            <div class="text-xs text-gray-400">Командир (NASA)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-blue-400/20">VG</div>
+                        <div>
+                            <div class="text-sm font-semibold">Віктор Гловер</div>
+                            <div class="text-xs text-gray-400">Пілот (NASA)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-purple-500/20">CK</div>
+                        <div>
+                            <div class="text-sm font-semibold">Крістіна Кох</div>
+                            <div class="text-xs text-gray-400">Спеціаліст місії (NASA)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-red-500/20">JH</div>
+                        <div>
+                            <div class="text-sm font-semibold">Джеремі Хенсен</div>
+                            <div class="text-xs text-gray-400">Спеціаліст місії (CSA)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-xs text-gray-500 text-center">
+                Використовуйте мишу для обертання 3D сцени
+            </div>
+        </div>
+
+        <!-- Right Content / Timeline -->
+        <div class="w-full md:w-2/3 lg:w-3/4 h-full flex flex-col relative pointer-events-none">
+            <!-- Top Nav -->
+            <div class="w-full p-6 flex justify-between items-start pointer-events-auto">
+                <div class="glass-panel px-4 py-2 rounded-lg inline-flex items-center gap-3">
+                    <button id="btn-earth" class="nav-button px-3 py-1.5 rounded text-sm font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600/40">Земля</button>
+                    <button id="btn-moon" class="nav-button px-3 py-1.5 rounded text-sm font-medium text-gray-300 border border-transparent">Місяць</button>
+                    <button id="btn-path" class="nav-button px-3 py-1.5 rounded text-sm font-medium text-gray-300 border border-transparent">Траєкторія</button>
+                </div>
+                
+                <button id="btn-info" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                    <i class="fas fa-info"></i>
+                </button>
+            </div>
+
+            <!-- Bottom Timeline -->
+            <div class="mt-auto w-full p-4 md:p-8 pointer-events-auto">
+                <div class="glass-panel rounded-xl p-5 w-full max-w-4xl mx-auto backdrop-blur-md bg-gray-900/80 border border-gray-700 shadow-2xl">
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <h2 id="phase-title" class="text-2xl font-bold text-white mb-1">1. Запуск та вихід на орбіту</h2>
+                            <p id="phase-desc" class="text-gray-400 text-sm max-w-2xl">Ракета Space Launch System (SLS) стартує з Космічного центру Кеннеді, виводячи корабель Orion на високоеліптичну орбіту навколо Землі.</p>
+                        </div>
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs text-gray-500 uppercase">Поточна фаза</div>
+                            <div class="text-3xl font-mono font-light text-blue-400" id="phase-counter">01<span class="text-gray-600 text-xl">/05</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar / Timeline markers -->
+                    <div class="relative pt-4 pb-2">
+                        <!-- Connecting line -->
+                        <div class="absolute top-7 left-0 w-full h-1 bg-gray-800 rounded-full -z-10"></div>
+                        <div id="progress-line" class="absolute top-7 left-0 w-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full -z-10 transition-all duration-500 ease-out"></div>
+                        
+                        <div class="flex justify-between relative z-10">
+                            <button class="timeline-dot group flex flex-col items-center" data-phase="1">
+                                <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center border-4 border-gray-900 shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                </div>
+                                <span class="mt-2 text-xs font-medium text-blue-400 group-hover:text-white transition-colors">Старт</span>
+                            </button>
+                            
+                            <button class="timeline-dot group flex flex-col items-center" data-phase="2">
+                                <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-900 group-hover:bg-gray-500 transition-all">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full opacity-0"></div>
+                                </div>
+                                <span class="mt-2 text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors hidden sm:block">Орбіта Землі</span>
+                            </button>
+                            
+                            <button class="timeline-dot group flex flex-col items-center" data-phase="3">
+                                <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-900 group-hover:bg-gray-500 transition-all">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full opacity-0"></div>
+                                </div>
+                                <span class="mt-2 text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors hidden sm:block">Транзит</span>
+                            </button>
+                            
+                            <button class="timeline-dot group flex flex-col items-center" data-phase="4">
+                                <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-900 group-hover:bg-gray-500 transition-all">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full opacity-0"></div>
+                                </div>
+                                <span class="mt-2 text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">Обліт Місяця</span>
+                            </button>
+                            
+                            <button class="timeline-dot group flex flex-col items-center" data-phase="5">
+                                <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-900 group-hover:bg-gray-500 transition-all">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full opacity-0"></div>
+                                </div>
+                                <span class="mt-2 text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">Повернення</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl p-8 m-4 relative border border-gray-700 shadow-2xl transform scale-95 transition-transform duration-300" id="modal-content">
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white p-2">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <h2 class="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">Цікаві факти про Артеміду-2</h2>
+            
+            <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                <div class="bg-gray-800/40 p-4 rounded-xl border border-gray-700/50">
+                    <h4 class="text-blue-400 font-semibold mb-2 flex items-center gap-2">
+                        <i class="fas fa-rocket"></i> Найпотужніша ракета
+                    </h4>
+                    <p class="text-gray-300 text-sm">Space Launch System (SLS) створює тягу на 15% більшу, ніж ракета Saturn V, яка доставила астронавтів місії Аполлон на Місяць.</p>
+                </div>
+                
+                <div class="bg-gray-800/40 p-4 rounded-xl border border-gray-700/50">
+                    <h4 class="text-purple-400 font-semibold mb-2 flex items-center gap-2">
+                        <i class="fas fa-users"></i> Історичний екіпаж
+                    </h4>
+                    <p class="text-gray-300 text-sm">Вперше в історії до Місяця полетять жінка (Крістіна Кох), афроамериканець (Віктор Гловер) та неамериканець (канадець Джеремі Хенсен).</p>
+                </div>
+                
+                <div class="bg-gray-800/40 p-4 rounded-xl border border-gray-700/50">
+                    <h4 class="text-green-400 font-semibold mb-2 flex items-center gap-2">
+                        <i class="fas fa-route"></i> Унікальна траєкторія
+                    </h4>
+                    <p class="text-gray-300 text-sm">Місія використовує траєкторію "вільного повернення". Це означає, що гравітація Місяця автоматично відкине корабель Orion назад до Землі без необхідності вмикати головні двигуни, що забезпечує максимальну безпеку екіпажу.</p>
+                </div>
+                
+                <div class="bg-gray-800/40 p-4 rounded-xl border border-gray-700/50">
+                    <h4 class="text-red-400 font-semibold mb-2 flex items-center gap-2">
+                        <i class="fas fa-tachometer-alt"></i> Рекордна дальність
+                    </h4>
+                    <p class="text-gray-300 text-sm">Екіпаж віддалиться від Землі на відстань понад 370 000 км - далі, ніж будь-хто з людей за останні півстоліття.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data for the phases
+        const missionPhases = [
+            {
+                id: 1,
+                title: "1. Запуск та вихід на орбіту",
+                desc: "Ракета Space Launch System (SLS) стартує з Космічного центру Кеннеді, виводячи корабель Orion на високоеліптичну орбіту навколо Землі. Ця фаза триває близько доби і дозволяє перевірити всі системи.",
+                cameraPos: { x: 0, y: 10, z: 30 },
+                targetPos: { x: 0, y: 0, z: 0 },
+                progress: 0
+            },
+            {
+                id: 2,
+                title: "2. Демонстрація операцій на орбіті",
+                desc: "Корабель Orion відстиковується від розгінного блоку ICPS. Екіпаж виконує маневри зближення, використовуючи ICPS як ціль для перевірки систем ручного управління кораблем.",
+                cameraPos: { x: 15, y: 5, z: 20 },
+                targetPos: { x: 0, y: 0, z: 0 },
+                progress: 25
+            },
+            {
+                id: 3,
+                title: "3. Трансмісячна ін'єкція (TLI)",
+                desc: "Головний двигун вмикається, щоб надати кораблю прискорення, необхідне для подолання земного тяжіння. Починається 4-денна подорож до Місяця зі швидкістю понад 39 000 км/год.",
+                cameraPos: { x: 30, y: 20, z: 50 },
+                targetPos: { x: 20, y: 0, z: 0 },
+                progress: 50
+            },
+            {
+                id: 4,
+                title: "4. Обліт Місяця",
+                desc: "Orion не виходитиме на орбіту Місяця. Натомість він пролетить на відстані близько 10 000 км від зворотного боку Місяця. Гравітація супутника змінить траєкторію корабля для повернення додому.",
+                cameraPos: { x: 80, y: 15, z: 30 },
+                targetPos: { x: 100, y: 0, z: 0 },
+                progress: 75
+            },
+            {
+                id: 5,
+                title: "5. Повернення та приводнення",
+                desc: "Після 4-денного шляху назад, капсула Orion увійде в атмосферу Землі на швидкості 40 000 км/год. Тепловий щит витримає температуру до 2760°C. Місія завершиться приводненням у Тихому океані.",
+                cameraPos: { x: -10, y: 5, z: 25 },
+                targetPos: { x: 0, y: 0, z: 0 },
+                progress: 100
+            }
+        ];
+
+        let currentPhase = 1;
+
+        // Three.js Setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        // Add subtle fog for depth
+        scene.fog = new THREE.FogExp2(0x050510, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(-100, 20, -50);
+        scene.add(sunLight);
+
+        // Add a subtle blue rim light for aesthetic
+        const rimLight = new THREE.DirectionalLight(0x4facfe, 0.5);
+        rimLight.position.set(50, 50, 50);
+        scene.add(rimLight);
+
+        // Earth Group
+        const earthGroup = new THREE.Group();
+        scene.add(earthGroup);
+
+        // Earth mesh
+        const earthGeometry = new THREE.SphereGeometry(10, 64, 64);
+        
+        // Use basic materials with colors since we can't reliably load external textures in this sandbox
+        // Create a procedural looking earth
+        const earthMaterial = new THREE.MeshPhongMaterial({
+            color: 0x156289,
+            emissive: 0x072534,
+            side: THREE.FrontSide,
+            flatShading: false,
+            shininess: 15
+        });
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        earthGroup.add(earth);
+
+        // Earth Atmosphere (Glow)
+        const atmosphereGeometry = new THREE.SphereGeometry(10.3, 64, 64);
+        const atmosphereMaterial = new THREE.MeshBasicMaterial({
+            color: 0x4facfe,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+        earthGroup.add(atmosphere);
+
+        // Add some "continents" using random spheres
+        const continentsGroup = new THREE.Group();
+        earth.add(continentsGroup);
+        const continentMat = new THREE.MeshPhongMaterial({ color: 0x2e8b57 });
+        for(let i=0; i<15; i++) {
+            const size = Math.random() * 3 + 1;
+            const geo = new THREE.SphereGeometry(size, 8, 8);
+            const mesh = new THREE.Mesh(geo, continentMat);
+            
+            // Random position on sphere
+            const phi = Math.acos(-1 + (2 * i) / 15);
+            const theta = Math.sqrt(15 * Math.PI) * phi;
+            
+            mesh.position.setFromSphericalCoords(9.8, phi, theta);
+            // Squish them flat to the surface
+            mesh.lookAt(0,0,0);
+            mesh.scale.z = 0.2;
+            continentsGroup.add(mesh);
+        }
+
+        // Moon Group
+        const moonGroup = new THREE.Group();
+        // Position moon far away
+        moonGroup.position.set(100, 0, 0); 
+        scene.add(moonGroup);
+
+        const moonGeometry = new THREE.SphereGeometry(2.7, 32, 32);
+        const moonMaterial = new THREE.MeshPhongMaterial({
+            color: 0xaaaaaa,
+            emissive: 0x222222,
+            shininess: 5
+        });
+        const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+        moonGroup.add(moon);
+
+        // Add craters to moon
+        const craterMat = new THREE.MeshPhongMaterial({ color: 0x888888 });
+        for(let i=0; i<30; i++) {
+            const size = Math.random() * 0.4 + 0.1;
+            const geo = new THREE.CylinderGeometry(size, size, 0.1, 8);
+            const mesh = new THREE.Mesh(geo, craterMat);
+            
+            const phi = Math.acos(-1 + (2 * i) / 30);
+            const theta = Math.sqrt(30 * Math.PI) * phi;
+            
+            mesh.position.setFromSphericalCoords(2.65, phi, theta);
+            mesh.lookAt(moonGroup.position);
+            mesh.rotateX(Math.PI/2);
+            moon.add(mesh);
+        }
+
+        // Orion Spacecraft (simplified)
+        const orionGroup = new THREE.Group();
+        scene.add(orionGroup);
+
+        // Capsule
+        const capsuleGeo = new THREE.ConeGeometry(0.5, 0.8, 16);
+        const capsuleMat = new THREE.MeshPhongMaterial({ color: 0xdddddd, shininess: 50 });
+        const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
+        capsule.rotation.x = -Math.PI / 2;
+        capsule.position.z = 0.4;
+        orionGroup.add(capsule);
+
+        // Service Module
+        const smGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16);
+        const smMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa });
+        const sm = new THREE.Mesh(smGeo, smMat);
+        sm.rotation.x = Math.PI / 2;
+        sm.position.z = -0.6;
+        orionGroup.add(sm);
+
+        // Solar Panels
+        const panelGeo = new THREE.BoxGeometry(3, 0.05, 0.3);
+        const panelMat = new THREE.MeshPhongMaterial({ color: 0x112255 });
+        
+        const panel1 = new THREE.Mesh(panelGeo, panelMat);
+        panel1.position.z = -0.6;
+        panel1.rotation.z = Math.PI / 4;
+        orionGroup.add(panel1);
+        
+        const panel2 = new THREE.Mesh(panelGeo, panelMat);
+        panel2.position.z = -0.6;
+        panel2.rotation.z = -Math.PI / 4;
+        orionGroup.add(panel2);
+
+        // Trajectory Line (Figure 8 free-return)
+        const trajectoryPoints = [];
+        const numPoints = 100;
+        
+        for (let i = 0; i <= numPoints; i++) {
+            const t = i / numPoints;
+            const angle = t * Math.PI * 2;
+            
+            // Parametric equation for a figure-8 like path between Earth(0,0) and Moon(100,0)
+            let x, y, z;
+            
+            if (t < 0.5) {
+                // Outward journey
+                const tOut = t * 2; // 0 to 1
+                x = tOut * 105;
+                // Add an arc
+                z = Math.sin(tOut * Math.PI) * 20;
+                y = Math.sin(tOut * Math.PI) * 5;
+            } else {
+                // Return journey
+                const tIn = (t - 0.5) * 2; // 0 to 1
+                x = 105 - (tIn * 105);
+                // Arc on the other side
+                z = -Math.sin(tIn * Math.PI) * 20;
+                y = -Math.sin(tIn * Math.PI) * 5;
+            }
+            
+            trajectoryPoints.push(new THREE.Vector3(x, y, z));
+        }
+
+        const trajectoryGeo = new THREE.BufferGeometry().setFromPoints(trajectoryPoints);
+        const trajectoryMat = new THREE.LineBasicMaterial({ 
+            color: 0x4facfe, 
+            transparent: true, 
+            opacity: 0.5,
+            linewidth: 2
+        });
+        const trajectoryLine = new THREE.Line(trajectoryGeo, trajectoryMat);
+        scene.add(trajectoryLine);
+
+        // Stars Background
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 2000;
+        const posArray = new Float32Array(starsCount * 3);
+        const colorArray = new Float32Array(starsCount * 3);
+
+        for(let i = 0; i < starsCount * 3; i+=3) {
+            // Put stars far away
+            const r = 200 + Math.random() * 300;
+            const theta = 2 * Math.PI * Math.random();
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            posArray[i] = r * Math.sin(phi) * Math.cos(theta);
+            posArray[i+1] = r * Math.sin(phi) * Math.sin(theta);
+            posArray[i+2] = r * Math.cos(phi);
+
+            // Add some color variation (blue/white/orange)
+            const cType = Math.random();
+            if (cType < 0.7) { // White/blueish
+                colorArray[i] = 0.8 + Math.random() * 0.2;
+                colorArray[i+1] = 0.9 + Math.random() * 0.1;
+                colorArray[i+2] = 1.0;
+            } else if (cType < 0.9) { // Pure white
+                colorArray[i] = 1.0; colorArray[i+1] = 1.0; colorArray[i+2] = 1.0;
+            } else { // Orange/reddish
+                colorArray[i] = 1.0;
+                colorArray[i+1] = 0.7 + Math.random() * 0.2;
+                colorArray[i+2] = 0.5 + Math.random() * 0.2;
+            }
+        }
+
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        starsGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+        const starsMat = new THREE.PointsMaterial({
+            size: 0.8,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8
+        });
+        const starsMesh = new THREE.Points(starsGeo, starsMat);
+        scene.add(starsMesh);
+
+        // Initial setup
+        camera.position.set(0, 10, 30);
+        camera.lookAt(0, 0, 0);
+        
+        // Mouse interaction for rotation
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX) * 0.001;
+            mouseY = (event.clientY - windowHalfY) * 0.001;
+        });
+
+        // Current look target
+        const currentLookAt = new THREE.Vector3(0,0,0);
+
+        // Animation Loop
+        let time = 0;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+
+            time += 0.005;
+
+            // Rotate bodies
+            earth.rotation.y += 0.001;
+            moon.rotation.y += 0.002;
+            starsMesh.rotation.y -= 0.0002;
+
+            // Move Orion based on phase
+            updateOrionPosition();
+
+            // Smooth camera movement based on mouse (parallax effect)
+            targetX = mouseX * 10;
+            targetY = mouseY * 10;
+            
+            // Apply subtle mouse parallax to camera
+            camera.position.x += (camera.position.x + targetX - camera.position.x) * 0.02;
+            camera.position.y += (camera.position.y - targetY - camera.position.y) * 0.02;
+            
+            camera.lookAt(currentLookAt);
+
+            renderer.render(scene, camera);
+        }
+
+        function updateOrionPosition() {
+            // Map the current phase to a position along the trajectory
+            let t = 0;
+            
+            switch(currentPhase) {
+                case 1: t = 0.01; break; // Near Earth
+                case 2: t = 0.05; break; // Low Earth Orbit
+                case 3: t = 0.25; break; // Middle of transit
+                case 4: t = 0.50; break; // Behind Moon
+                case 5: t = 0.95; break; // Returning near Earth
+            }
+
+            // Animate t to make it move slightly
+            t += Math.sin(time * 2) * 0.01;
+            
+            // Constrain t
+            t = Math.max(0, Math.min(1, t));
+
+            // Get point on trajectory
+            const index = Math.floor(t * numPoints);
+            const nextIndex = Math.min(numPoints, index + 1);
+            
+            if (trajectoryPoints[index] && trajectoryPoints[nextIndex]) {
+                const p1 = trajectoryPoints[index];
+                const p2 = trajectoryPoints[nextIndex];
+                
+                // Interpolate
+                const factor = (t * numPoints) - index;
+                const currentPos = new THREE.Vector3().copy(p1).lerp(p2, factor);
+                
+                // If phase 1 or 2, orbit earth closely
+                if (currentPhase === 1 || currentPhase === 2) {
+                    const radius = currentPhase === 1 ? 12 : 15;
+                    const speed = currentPhase === 1 ? 2 : 1;
+                    orionGroup.position.x = Math.sin(time * speed) * radius;
+                    orionGroup.position.z = Math.cos(time * speed) * radius;
+                    orionGroup.position.y = Math.sin(time * speed * 0.5) * 2;
+                    
+                    // Look forward along path
+                    const lookTarget = new THREE.Vector3(
+                        Math.sin((time + 0.1) * speed) * radius,
+                        Math.sin((time + 0.1) * speed * 0.5) * 2,
+                        Math.cos((time + 0.1) * speed) * radius
+                    );
+                    orionGroup.lookAt(lookTarget);
+                } else {
+                    // Follow trajectory
+                    orionGroup.position.copy(currentPos);
+                    orionGroup.lookAt(p2);
+                }
+            }
+            
+            // Spin spacecraft slowly
+            orionGroup.rotateZ(0.01);
+        }
+
+        function setPhase(phaseIndex) {
+            currentPhase = phaseIndex;
+            const phaseData = missionPhases[phaseIndex - 1];
+
+            // Update UI
+            document.getElementById('phase-title').textContent = phaseData.title;
+            document.getElementById('phase-desc').textContent = phaseData.desc;
+            document.getElementById('phase-counter').innerHTML = `0${phaseIndex}<span class="text-gray-600 text-xl">/05</span>`;
+            
+            // Update progress bar
+            document.getElementById('progress-line').style.width = `${phaseData.progress}%`;
+
+            // Update dots
+            const dots = document.querySelectorAll('.timeline-dot');
+            dots.forEach((dot, index) => {
+                const inner = dot.querySelector('div');
+                const core = dot.querySelector('.bg-white');
+                const text = dot.querySelector('span');
+                
+                if (index < phaseIndex) {
+                    // Active or passed
+                    inner.className = 'w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center border-4 border-gray-900 shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all';
+                    core.className = 'w-1.5 h-1.5 bg-white rounded-full opacity-100';
+                    text.className = 'mt-2 text-xs font-medium text-blue-400 transition-colors' + (index > 0 && index < 4 ? ' hidden sm:block' : '');
+                } else {
+                    // Future
+                    inner.className = 'w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center border-4 border-gray-900 transition-all';
+                    core.className = 'w-1.5 h-1.5 bg-white rounded-full opacity-0';
+                    text.className = 'mt-2 text-xs font-medium text-gray-600 transition-colors' + (index > 0 && index < 4 ? ' hidden sm:block' : '');
+                }
+            });
+
+            // Animate Camera
+            gsap.to(camera.position, {
+                x: phaseData.cameraPos.x,
+                y: phaseData.cameraPos.y,
+                z: phaseData.cameraPos.z,
+                duration: 2,
+                ease: "power2.inOut"
+            });
+
+            gsap.to(currentLookAt, {
+                x: phaseData.targetPos.x,
+                y: phaseData.targetPos.y,
+                z: phaseData.targetPos.z,
+                duration: 2,
+                ease: "power2.inOut"
+            });
+            
+            // Reset nav buttons
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.className = 'nav-button px-3 py-1.5 rounded text-sm font-medium text-gray-300 border border-transparent hover:bg-white/10';
+            });
+        }
+
+        // Timeline clicks
+        document.querySelectorAll('.timeline-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                const phase = parseInt(dot.getAttribute('data-phase'));
+                setPhase(phase);
+            });
+        });
+
+        // Top Navigation
+        document.getElementById('btn-earth').addEventListener('click', (e) => {
+            gsap.to(camera.position, { x: 0, y: 15, z: 35, duration: 1.5 });
+            gsap.to(currentLookAt, { x: 0, y: 0, z: 0, duration: 1.5 });
+            highlightNavBtn(e.target);
+        });
+
+        document.getElementById('btn-moon').addEventListener('click', (e) => {
+            gsap.to(camera.position, { x: 100, y: 10, z: 20, duration: 2 });
+            gsap.to(currentLookAt, { x: 100, y: 0, z: 0, duration: 2 });
+            highlightNavBtn(e.target);
+        });
+
+        document.getElementById('btn-path').addEventListener('click', (e) => {
+            gsap.to(camera.position, { x: 50, y: 60, z: 80, duration: 2 });
+            gsap.to(currentLookAt, { x: 50, y: 0, z: 0, duration: 2 });
+            highlightNavBtn(e.target);
+        });
+
+        function highlightNavBtn(btn) {
+            document.querySelectorAll('.nav-button').forEach(b => {
+                b.className = 'nav-button px-3 py-1.5 rounded text-sm font-medium text-gray-300 border border-transparent hover:bg-white/10';
+            });
+            btn.className = 'nav-button px-3 py-1.5 rounded text-sm font-medium bg-blue-600/20 text-blue-300 border border-blue-500/30';
+        }
+
+        // Modal Logic
+        const modal = document.getElementById('info-modal');
+        const modalContent = document.getElementById('modal-content');
+        
+        document.getElementById('btn-info').addEventListener('click', () => {
+            modal.classList.remove('pointer-events-none');
+            // Slight delay to allow display block to apply before opacity transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        });
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('pointer-events-none');
+            }, 300);
+        }
+
+        document.getElementById('close-modal').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        window.onload = function() {
+            // Simulate loading time for visual effect
+            setTimeout(() => {
+                const loader = document.getElementById('loading');
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    // Start animation loop after load
+                    animate();
+                    // Initial animation
+                    setPhase(1);
+                }, 1000);
+            }, 1500);
+        };
+    </script>
+</body>
+</html>
