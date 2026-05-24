@@ -10,37 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .music-player {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 60;
-    width: 250px;
-    background: rgba(10, 15, 30, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 14px;
-    transform: translateX(205px);
-    transition: transform 0.35s ease;
-    box-shadow: 0 0 25px rgba(79, 172, 254, 0.25);
-}
-
-.music-player.open {
-    transform: translateX(0);
-}
-
-.music-tab {
-    cursor: pointer;
-    color: #60a5fa;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-
-.music-player input[type="range"] {
-    width: 100%;
-}
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #050510;
@@ -151,6 +120,37 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .music-player {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 60;
+    width: 250px;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 14px;
+    transform: translateX(205px);
+    transition: transform 0.35s ease;
+    box-shadow: 0 0 25px rgba(79, 172, 254, 0.25);
+}
+
+.music-player.open {
+    transform: translateX(0);
+}
+
+.music-tab {
+    cursor: pointer;
+    color: #60a5fa;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.music-player input[type="range"] {
+    width: 100%;
+}
     </style>
 </head>
 <body>
